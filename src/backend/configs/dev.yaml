@@ -1,0 +1,3 @@
+model:
+  model_name: "ggml-base.en.bin"
+  model_path: "/home/ar-in-u-301/Documents/codes/whisper.cpp/models/ggml-base.en.bin"
