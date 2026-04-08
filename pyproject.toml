@@ -11,6 +11,11 @@ dependencies = [
     "fastapi (>=0.135.3,<0.136.0)",
     "loguru (>=0.7.2,<1.0.0)",
     "pyyaml (>=6.0.1,<7.0.0)",
+    "streamlit (>=1.56.0,<2.0.0)",
+    "streamlit-webrtc (>=0.64.5,<0.65.0)",
+    "numpy (>=2.4.4,<3.0.0)",
+    "scipy (>=1.17.1,<2.0.0)",
+    "av (>=14,<17)",
 ]
 
 [project.scripts]
