@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TechBuddy - Real-time Speech Transcription</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1000px;
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+      text-align: center;
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 2.5em;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #64748b;
+      margin-bottom: 30px;
+      font-size: 1.1em;
+    }
+
+    .connection-status {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.85em;
+      font-weight: 600;
+      margin-bottom: 25px;
+      text-align: center;
+      width: 100%;
+    }
+
+    .connection-status.connected {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .connection-status.disconnected {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .connection-status.connecting {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    canvas {
+      width: 100%;
+      height: 120px;
+      margin: 20px auto;
+      display: block;
+      border-radius: 12px;
+      background: #f8fafc;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .controls {
+      margin: 25px 0;
+      text-align: center;
+    }
+
+    button {
+      padding: 14px 28px;
+      margin: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    #startBtn {
+      background: #22c55e;
+      color: white;
+    }
+
+    #startBtn:hover:not(:disabled) {
+      background: #16a34a;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+    }
+
+    #stopBtn {
+      background: #ef4444;
+      color: white;
+    }
+
+    #stopBtn:hover:not(:disabled) {
+      background: #dc2626;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+
+    #clearBtn {
+      background: #64748b;
+      color: white;
+    }
+
+    #clearBtn:hover {
+      background: #475569;
+    }
+
+    button:disabled {
+      background: #cbd5e1 !important;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+      animation: pulse 2s infinite;
+    }
+
+    .status-indicator.recording {
+      background: #ef4444;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .transcription-box {
+      margin-top: 25px;
+      padding: 25px;
+      background: #f8fafc;
+      border-radius: 12px;
+      border: 2px solid #e2e8f0;
+      min-height: 200px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .transcription-box h3 {
+      color: #334155;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+    }
+
+    .transcription-text {
+      color: #1e293b;
+      line-height: 1.8;
+      font-size: 1.05em;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .transcription-text.empty {
+      color: #94a3b8;
+      font-style: italic;
+    }
+
+    .info-box {
+      margin-top: 20px;
+      padding: 15px;
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      border-radius: 8px;
+      font-size: 0.9em;
+      color: #1e40af;
+    }
+
+    .recording-status {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 0.95em;
+      color: #64748b;
+      min-height: 24px;
+    }
+
+    .recording-status.active {
+      color: #ef4444;
+      font-weight: 600;
+    }
+
+    .error-message {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 15px;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>🎤 TechBuddy</h1>
+    <p class="subtitle">Real-time Speech Transcription</p>
+
+    <div id="connectionStatus" class="connection-status disconnected">
+      ⚠️ Disconnected from server
+    </div>
+
+    <canvas id="waveform"></canvas>
+
+    <div class="recording-status" id="recordingStatus">Ready to record</div>
+
+    <div class="controls">
+      <button id="startBtn">Start Recording</button>
+      <button id="stopBtn" disabled>Stop Recording</button>
+      <button id="clearBtn">Clear Transcription</button>
+    </div>
+
+    <div class="transcription-box">
+      <h3>📝 Transcription</h3>
+      <div class="transcription-text empty" id="transcriptionText">
+        Your transcribed text will appear here...
+      </div>
+    </div>
+
+    <div class="error-message" id="errorMessage"></div>
+
+    <div class="info-box">
+      💡 <strong>Tip:</strong> Click "Start Recording" to begin recording your speech. 
+      Click "Stop Recording" when finished - transcription will process automatically.
+      Make sure your microphone is connected and permissions are granted.
+    </div>
+  </div>
+
+  <script>
+    // WebSocket and audio configuration
+    const WS_URL = `ws://${window.location.hostname}:8000/ws/transcribe`;
+    
+    let websocket = null;
+    let mediaRecorder = null;
+    let audioContext = null;
+    let analyser = null;
+    let dataArray = null;
+    let animationId = null;
+    let isRecording = false;
+
+    // DOM elements
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const connectionStatus = document.getElementById('connectionStatus');
+    const recordingStatus = document.getElementById('recordingStatus');
+    const transcriptionText = document.getElementById('transcriptionText');
+    const errorMessage = document.getElementById('errorMessage');
+    const canvas = document.getElementById('waveform');
+    const canvasCtx = canvas.getContext('2d');
+
+    // Initialize WebSocket connection
+    function connectWebSocket() {
+      updateConnectionStatus('connecting');
+      
+      try {
+        websocket = new WebSocket(WS_URL);
+
+        websocket.onopen = () => {
+          console.log('WebSocket connected');
+          updateConnectionStatus('connected');
+          showError('');
+        };
+
+        websocket.onmessage = (event) => {
+          handleWebSocketMessage(JSON.parse(event.data));
+        };
+
+        websocket.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          showError('Connection error. Please check if the server is running.');
+        };
+
+        websocket.onclose = () => {
+          console.log('WebSocket disconnected');
+          updateConnectionStatus('disconnected');
+          
+          // Auto-reconnect after 3 seconds
+          setTimeout(connectWebSocket, 3000);
+        };
+      } catch (error) {
+        console.error('Failed to connect:', error);
+        showError('Failed to connect to server. Retrying...');
+        setTimeout(connectWebSocket, 3000);
+      }
+    }
+
+    // Handle incoming WebSocket messages
+    function handleWebSocketMessage(data) {
+      console.log('Received:', data);
+
+      switch (data.type) {
+        case 'connection':
+          console.log('Connection established:', data.message);
+          break;
+
+        case 'chunk_received':
+          // Update status with chunk info
+          const bufferKB = (data.buffer_size / 1024).toFixed(1);
+          recordingStatus.textContent = `Recording... (${data.chunk_count} chunks, ${bufferKB} KB buffered)`;
+          break;
+
+        case 'transcription':
+          appendTranscription(data.text);
+          break;
+
+        case 'processing':
+          recordingStatus.textContent = data.message || 'Processing audio...';
+          break;
+
+        case 'finalized':
+          recordingStatus.textContent = 'Transcription complete';
+          setTimeout(() => {
+            recordingStatus.textContent = 'Ready to record';
+          }, 2000);
+          break;
+
+        case 'error':
+          showError(data.message);
+          recordingStatus.textContent = 'Error occurred';
+          break;
+
+        default:
+          console.log('Unknown message type:', data.type);
+      }
+    }
+
+    // Update connection status display
+    function updateConnectionStatus(status) {
+      connectionStatus.className = `connection-status ${status}`;
+      
+      const statusText = {
+        connected: '✅ Connected to server',
+        disconnected: '⚠️ Disconnected from server',
+        connecting: '🔄 Connecting to server...'
+      };
+      
+      connectionStatus.textContent = statusText[status] || status;
+    }
+
+    // Append transcribed text
+    function appendTranscription(text) {
+      if (transcriptionText.classList.contains('empty')) {
+        transcriptionText.classList.remove('empty');
+        transcriptionText.textContent = '';
+      }
+      
+      transcriptionText.textContent += text + ' ';
+      
+      // Auto-scroll to bottom
+      transcriptionText.parentElement.scrollTop = transcriptionText.parentElement.scrollHeight;
+    }
+
+    // Show error message
+    function showError(message) {
+      if (message) {
+        errorMessage.textContent = message;
+        errorMessage.classList.add('show');
+      } else {
+        errorMessage.classList.remove('show');
+      }
+    }
+
+    // Start recording
+    startBtn.onclick = async () => {
+      if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+        showError('Not connected to server. Please wait...');
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            channelCount: 1,
+            sampleRate: 16000,
+            echoCancellation: true,
+            noiseSuppression: true,
+          } 
+        });
+
+        // Create MediaRecorder
+        const options = { mimeType: 'audio/webm' };
+        mediaRecorder = new MediaRecorder(stream, options);
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0 && websocket.readyState === WebSocket.OPEN) {
+            // Send audio chunk to server
+            websocket.send(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          // Send finalize command
+          if (websocket.readyState === WebSocket.OPEN) {
+            websocket.send(JSON.stringify({ command: 'finalize' }));
+          }
+          recordingStatus.textContent = 'Recording stopped';
+          recordingStatus.classList.remove('active');
+        };
+
+        // Start recording with chunks every 1 second
+        mediaRecorder.start(1000);
+        isRecording = true;
+
+        // Setup visualizer
+        setupVisualizer(stream);
+
+        // Update UI
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        recordingStatus.innerHTML = '<span class="status-indicator recording"></span>Recording in progress...';
+        recordingStatus.classList.add('active');
+        showError('');
+
+      } catch (error) {
+        console.error('Microphone error:', error);
+        showError('Microphone access denied. Please grant permission and try again.');
+      }
+    };
+
+    // Stop recording
+    stopBtn.onclick = () => {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      }
+
+      isRecording = false;
+      cancelAnimationFrame(animationId);
+      canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    };
+
+    // Clear transcription
+    clearBtn.onclick = () => {
+      transcriptionText.textContent = 'Your transcribed text will appear here...';
+      transcriptionText.classList.add('empty');
+      
+      // Send reset command to server
+      if (websocket && websocket.readyState === WebSocket.OPEN) {
+        websocket.send(JSON.stringify({ command: 'reset' }));
+      }
+    };
+
+    // Setup audio visualizer
+    function setupVisualizer(stream) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioContext.createMediaStreamSource(stream);
+
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.8;
+
+      const bufferLength = analyser.frequencyBinCount;
+      dataArray = new Uint8Array(bufferLength);
+
+      source.connect(analyser);
+      drawWaveform();
+    }
+
+    // Draw waveform visualization
+    function drawWaveform() {
+      if (!isRecording) return;
+      
+      animationId = requestAnimationFrame(drawWaveform);
+      analyser.getByteTimeDomainData(dataArray);
+
+      canvasCtx.fillStyle = '#f8fafc';
+      canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+      canvasCtx.lineWidth = 2.5;
+      canvasCtx.strokeStyle = '#667eea';
+
+      canvasCtx.beginPath();
+
+      const sliceWidth = canvas.width / dataArray.length;
+      let x = 0;
+
+      for (let i = 0; i < dataArray.length; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = (v * canvas.height) / 2;
+
+        if (i === 0) {
+          canvasCtx.moveTo(x, y);
+        } else {
+          canvasCtx.lineTo(x, y);
+        }
+
+        x += sliceWidth;
+      }
+
+      canvasCtx.lineTo(canvas.width, canvas.height / 2);
+      canvasCtx.stroke();
+    }
+
+    // Initialize connection on page load
+    window.addEventListener('load', () => {
+      connectWebSocket();
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (websocket) {
+        websocket.close();
+      }
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+    });
+  </script>
+</body>
+</html>
