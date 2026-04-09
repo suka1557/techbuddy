@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Voice Recorder</title>
+
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #eef2f7, #d9e4f5);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    .container {
+      width: 80%;
+      max-width: 900px;
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    canvas {
+      width: 70%;
+      height: 120px;
+      margin: 0 auto 25px auto;
+      display: block;
+      border-radius: 12px;
+      background: #f8fafc;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .controls {
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 12px 22px;
+      margin: 10px;
+      font-size: 14px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    #start {
+      background: #22c55e;
+      color: white;
+    }
+
+    #start:hover {
+      background: #16a34a;
+      transform: translateY(-1px);
+    }
+
+    #stop {
+      background: #ef4444;
+      color: white;
+    }
+
+    #stop:hover {
+      background: #dc2626;
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      background: #cbd5e1 !important;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 10px;
+    }
+
+    .recording {
+      color: #ef4444;
+      font-weight: 600;
+    }
+
+    audio {
+      width: 100%;
+      margin-top: 15px;
+      border-radius: 8px;
+    }
+  </style>
+
+</head>
+
+<body>
+
+<div class="container">
+  <h2>🎤 Voice Recorder</h2>
+
+  <div id="status" class="status">Idle</div>
+
+<canvas id="waveform"></canvas>
+
+  <div class="controls">
+    <button id="start">START RECORDING</button>
+    <button id="stop" disabled>STOP RECORDING</button>
+  </div>
+</div>
+
+<script>
+let mediaRecorder;
+let audioChunks = [];
+
+let audioContext;
+let analyser;
+let dataArray;
+let animationId;
+
+const canvas = document.getElementById("waveform");
+const canvasCtx = canvas.getContext("2d");
+const statusText = document.getElementById("status");
+
+document.getElementById("start").onclick = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    mediaRecorder = new MediaRecorder(stream);
+
+    mediaRecorder.ondataavailable = event => {
+      if (event.data.size > 0) {
+        audioChunks.push(event.data);
+      }
+    };
+
+    mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = document.createElement("audio");
+      audio.controls = true;
+      audio.src = audioUrl;
+
+      document.querySelector(".container").appendChild(audio);
+
+      audioChunks = [];
+      statusText.textContent = "Recording stopped";
+      statusText.classList.remove("recording");
+    };
+
+    mediaRecorder.start();
+
+    // Audio context for waveform
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioContext.createMediaStreamSource(stream);
+
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;
+
+    const bufferLength = analyser.frequencyBinCount;
+    dataArray = new Uint8Array(bufferLength);
+
+    source.connect(analyser);
+
+    drawWaveform();
+
+    document.getElementById("start").disabled = true;
+    document.getElementById("stop").disabled = false;
+
+    statusText.textContent = "Recording...";
+    statusText.classList.add("recording");
+
+  } catch (err) {
+    alert("Microphone access denied.");
+    console.error(err);
+  }
+};
+
+document.getElementById("stop").onclick = () => {
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    mediaRecorder.stop();
+  }
+
+  cancelAnimationFrame(animationId);
+
+  canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+
+  document.getElementById("start").disabled = false;
+  document.getElementById("stop").disabled = true;
+};
+
+function drawWaveform() {
+  animationId = requestAnimationFrame(drawWaveform);
+
+  analyser.getByteTimeDomainData(dataArray);
+
+  canvasCtx.fillStyle = "#f8fafc";
+  canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+  canvasCtx.lineWidth = 2;
+  canvasCtx.strokeStyle = "#22c55e";
+
+  canvasCtx.beginPath();
+
+  const sliceWidth = canvas.width / dataArray.length;
+  let x = 0;
+
+  for (let i = 0; i < dataArray.length; i++) {
+    const v = dataArray[i] / 128.0;
+    const y = (v * canvas.height) / 2;
+
+    if (i === 0) {
+      canvasCtx.moveTo(x, y);
+    } else {
+      canvasCtx.lineTo(x, y);
+    }
+
+    x += sliceWidth;
+  }
+
+  canvasCtx.lineTo(canvas.width, canvas.height / 2);
+  canvasCtx.stroke();
+}
+</script>
+
+</body>
+</html>
