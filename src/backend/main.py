@@ -15,6 +15,7 @@ from configs.config import Config
 from utils.download_whisper import download_whisper_model
 from core.whisper_model3 import StreamingFasterWhisperTranscriber
 from core.websocket_handler2 import TranscriptionWebSocket
+from core.narrator_websocket_handler import NarratorWebSocket
 
 # Load configuration
 config = Config.from_yaml(os.path.join(ROOT_PATH, "src", "backend", "configs/dev.yaml"))
@@ -61,8 +62,10 @@ frontend_path = ROOT_PATH / "src" / "frontend"
 if frontend_path.exists():
     app.mount("/static", StaticFiles(directory=str(frontend_path)), name="static")
 
-# Initialize WebSocket handler
+# Initialize Transcription WebSocket handler
 ws_handler = TranscriptionWebSocket(whisper_model)
+# Initialize Narrator WebSocket handler
+narrator_ws_handler = NarratorWebSocket()
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -94,6 +97,11 @@ async def websocket_transcribe(websocket: WebSocket):
     """
     await ws_handler.handle_transcription(websocket)
 
+@app.websocket("/ws/narrator")
+async def websocket_narrator(websocket: WebSocket):
+    """Handle Left Side Questions/Narration"""
+    await narrator_ws_handler.handle_narrator(websocket)
+
 
 def main():
     """Run the FastAPI server."""
@@ -102,6 +110,7 @@ def main():
     
     logger.info(f"Starting TechBuddy server on {host}:{port}")
     logger.info(f"WebSocket endpoint: ws://{host}:{port}/ws/transcribe")
+    logger.info(f"Narrator WebSocket endpoint: ws://{host}:{port}/ws/narrator")
     
     uvicorn.run(
         app,
