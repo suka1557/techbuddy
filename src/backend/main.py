@@ -13,8 +13,8 @@ logger.info(f"Base path: {ROOT_PATH}")
 
 from configs.config import Config
 from utils.download_whisper import download_whisper_model
-from core.whisper_model import WhisperModel
-from core.websocket_handler import TranscriptionWebSocket
+from core.whisper_model3 import StreamingFasterWhisperTranscriber
+from core.websocket_handler2 import TranscriptionWebSocket
 
 # Load configuration
 config = Config.from_yaml(os.path.join(ROOT_PATH, "src", "backend", "configs/dev.yaml"))
@@ -29,12 +29,14 @@ model_path = download_whisper_model(model_dir, model_name)
 logger.info(f"Model ready at: {model_path}")
 
 # Initialize Whisper Model
-whisper_model = WhisperModel(
-    model_path=model_path,
-    n_threads=4,
-    language="en",
-    print_realtime=False,
-    print_progress=False,
+whisper_model = StreamingFasterWhisperTranscriber(
+    model_size="base",  # Adjust as needed
+    device="cpu",
+    compute_type="int8",
+    sample_rate=16000,
+    window_size_sec=3.0,
+    step_size_sec=0.5,
+    min_silence_duration_ms=700
 )
 logger.info("Whisper model initialized")
 
@@ -66,7 +68,7 @@ ws_handler = TranscriptionWebSocket(whisper_model)
 @app.get("/", response_class=HTMLResponse)
 async def root():
     """Serve the main page with WebSocket transcription."""
-    transcribe_path = frontend_path / "transcribe.html"
+    transcribe_path = frontend_path / "transcribe2.html"
     if transcribe_path.exists():
         return transcribe_path.read_text()
     return "<h1>TechBuddy Server</h1><p>Frontend not found</p>"
