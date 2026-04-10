@@ -3,141 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamScribe | Real-Time AI</title>
+    <title>StreamScribe | Reader & Transcriber</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background: #0f172a; color: #f8fafc; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
-        .interim { color: #94a3b8; font-style: italic; }
+        .interim { color: #64748b; font-style: italic; }
         .pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+        
+        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        
+        .active-ring { ring: 4px; ring-color: rgba(99, 102, 241, 0.5); }
     </style>
 </head>
-<body class="flex flex-col items-center justify-center min-h-screen p-4">
+<body class="flex flex-col h-screen overflow-hidden">
 
-    <div class="w-full max-w-3xl space-y-6">
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">StreamScribe</h1>
-                <p class="text-slate-400 text-sm">Low-latency Raw PCM Streaming</p>
-            </div>
-            <div id="statusTag" class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700">
-                DISCONNECTED
-            </div>
+    <header class="h-16 flex items-center justify-between px-8 border-b border-slate-800 bg-slate-900 z-10">
+        <div class="flex items-center gap-2">
+            <div class="w-3 h-3 bg-indigo-500 rounded-full"></div>
+            <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+                StreamScribe
+            </h1>
         </div>
+        <div id="statusTag" class="px-3 py-1 rounded-full text-[10px] font-bold tracking-widest bg-slate-800 text-slate-500 border border-slate-700 transition-all">
+            OFFLINE
+        </div>
+    </header>
 
-        <div class="glass rounded-2xl p-6 min-h-[400px] flex flex-col shadow-2xl">
-            <div id="scrollArea" class="flex-grow overflow-y-auto space-y-4 pr-2 text-lg leading-relaxed">
-                <span id="committedText" class="text-slate-200"></span>
-                <span id="interimText" class="interim"></span>
-                <div id="emptyState" class="text-slate-500 italic text-center py-20">Click start to begin streaming...</div>
+    <main class="flex flex-1 overflow-hidden">
+        
+        <section class="w-1/2 flex flex-col bg-slate-950 p-10 relative border-r border-slate-800">
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h2 class="text-indigo-400 text-xs font-bold tracking-[0.2em] uppercase">Reader Focus</h2>
+                    <p class="text-slate-500 text-sm mt-1">Finalized text appears here for playback</p>
+                </div>
+                
+                <button id="ttsBtn" class="p-5 bg-indigo-600 hover:bg-indigo-500 rounded-full shadow-2xl transition-all active:scale-90 group">
+                    <svg id="speakerIcon" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    </svg>
+                </button>
             </div>
-            
-            <div class="mt-4 h-12 w-full flex items-end gap-1 overflow-hidden" id="viz"></div>
-        </div>
 
-        <div class="flex items-center justify-center gap-4">
-            <button id="startBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl font-semibold transition-all flex items-center gap-2">
-                <div id="recCircle" class="w-3 h-3 bg-white rounded-full"></div>
-                START STREAMING
-            </button>
-            <button id="stopBtn" class="hidden bg-slate-700 hover:bg-slate-600 text-white px-8 py-3 rounded-xl font-semibold transition-all">
-                STOP
-            </button>
-            <button id="clearBtn" class="p-3 text-slate-400 hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-            </button>
-        </div>
-    </div>
+            <div id="readerArea" class="flex-grow flex items-center justify-center text-center">
+                <p id="ttsContent" class="text-3xl font-light leading-relaxed text-slate-300 max-w-lg transition-all duration-500">
+                    Your final phrases will appear here...
+                </p>
+            </div>
+
+            <div class="mt-4 flex items-center gap-2 text-[10px] text-slate-600 font-bold uppercase tracking-widest">
+                <span id="ttsPulse" class="w-2 h-2 rounded-full bg-slate-800"></span>
+                TTS Engine: <span id="ttsStatus">Idle</span>
+            </div>
+        </section>
+
+        <section class="w-1/2 flex flex-col bg-slate-900 p-10">
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h2 class="text-cyan-400 text-xs font-bold tracking-[0.2em] uppercase">Live Transcription</h2>
+                    <p class="text-slate-500 text-sm mt-1">Real-time rolling inference</p>
+                </div>
+                <div class="flex gap-3">
+                    <button id="startBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg text-xs font-bold shadow-lg transition-all">START</button>
+                    <button id="stopBtn" class="hidden bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg text-xs font-bold shadow-lg transition-all">STOP</button>
+                </div>
+            </div>
+
+            <div id="scrollArea" class="flex-grow overflow-y-auto pr-4 space-y-4">
+                <div class="text-xl leading-relaxed">
+                    <span id="committedText" class="text-slate-200"></span>
+                    <span id="interimText" class="interim"></span>
+                    <div id="emptyPrompt" class="text-slate-700 italic mt-4">Waiting for microphone input...</div>
+                </div>
+            </div>
+
+            <div class="mt-10">
+                <div id="viz" class="h-16 w-full flex items-end gap-1 opacity-40">
+                    </div>
+                <div class="flex justify-between mt-4 border-t border-slate-800 pt-4">
+                    <button id="clearBtn" class="text-[10px] font-bold text-slate-500 hover:text-red-400 transition-colors uppercase tracking-widest">Clear Buffer</button>
+                    <span class="text-[10px] font-bold text-slate-700 tracking-widest uppercase">PCM 16000Hz / Float32</span>
+                </div>
+            </div>
+        </section>
+
+    </main>
 
     <script>
+        // --- CONFIGURATION ---
         const WS_URL = `ws://${window.location.hostname}:8000/ws/transcribe`;
         let ws = null;
         let audioContext = null;
         let processor = null;
         let source = null;
-
+        
+        // --- DOM ELEMENTS ---
         const startBtn = document.getElementById('startBtn');
         const stopBtn = document.getElementById('stopBtn');
         const clearBtn = document.getElementById('clearBtn');
+        const ttsBtn = document.getElementById('ttsBtn');
         const committedSpan = document.getElementById('committedText');
         const interimSpan = document.getElementById('interimText');
+        const ttsContent = document.getElementById('ttsContent');
         const statusTag = document.getElementById('statusTag');
         const viz = document.getElementById('viz');
+        const emptyPrompt = document.getElementById('emptyPrompt');
 
-        // Init WebSocket
+        // --- WEBSOCKET LOGIC ---
         function initWS() {
             ws = new WebSocket(WS_URL);
-            ws.onopen = () => updateStatus('READY', 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20');
+            ws.onopen = () => updateStatus('READY', 'text-emerald-500 border-emerald-500/20 bg-emerald-500/10');
             ws.onclose = () => {
-                updateStatus('DISCONNECTED', 'bg-slate-800 text-slate-400 border-slate-700');
-                setTimeout(initWS, 2000);
+                updateStatus('OFFLINE', 'text-slate-500 border-slate-700 bg-slate-800');
+                setTimeout(initWS, 3000);
             };
             ws.onmessage = (e) => {
                 const data = JSON.parse(e.data);
                 if (data.type === 'transcription') {
                     if (data.is_final) {
-                        // Commit interim text to history
-                        committedSpan.textContent += " " + interimSpan.textContent;
-                        interimSpan.textContent = "";
+                        const finalPhrase = interimSpan.textContent.trim();
+                        if (finalPhrase) {
+                            committedSpan.textContent += " " + finalPhrase + ".";
+                            // Update the Left Panel Reader
+                            ttsContent.textContent = finalPhrase;
+                            ttsContent.classList.add('text-indigo-300');
+                            setTimeout(() => ttsContent.classList.remove('text-indigo-300'), 1000);
+                            interimSpan.textContent = "";
+                        }
                     } else {
-                        // Update rolling interim text
+                        emptyPrompt.classList.add('hidden');
                         interimSpan.textContent = data.text;
-                        document.getElementById('emptyState').classList.add('hidden');
                     }
                     scrollToBottom();
                 }
             };
         }
 
+        // --- AUDIO STREAMING LOGIC ---
         async function startStreaming() {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            source = audioContext.createMediaStreamSource(stream);
-            
-            // Tier 1: Capture Raw PCM via ScriptProcessor
-            // Buffer size 4096 (~250ms of audio at 16kHz)
-            processor = audioContext.createScriptProcessor(4096, 1, 1);
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                source = audioContext.createMediaStreamSource(stream);
+                
+                // 4096 buffer @ 16khz is ~250ms latency
+                processor = audioContext.createScriptProcessor(4096, 1, 1);
 
-            processor.onaudioprocess = (e) => {
-                const inputData = e.inputBuffer.getChannelData(0);
-                // Send raw Float32 array as binary
-                if (ws.readyState === WebSocket.OPEN) {
-                    ws.send(inputData.buffer);
-                }
-                updateViz(inputData);
-            };
+                processor.onaudioprocess = (e) => {
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send(inputData.buffer); // Binary send
+                    }
+                    updateViz(inputData);
+                };
 
-            source.connect(processor);
-            processor.connect(audioContext.destination);
+                source.connect(processor);
+                processor.connect(audioContext.destination);
 
-            toggleUI(true);
+                toggleUI(true);
+            } catch (err) {
+                alert("Microphone access denied or error: " + err);
+            }
         }
 
         function stopStreaming() {
             if (processor) {
                 processor.disconnect();
                 source.disconnect();
-                audioContext.close();
+                if (audioContext.state !== 'closed') audioContext.close();
             }
             toggleUI(false);
         }
 
+        // --- TTS (TEXT TO SPEECH) ---
+        function speakText(text) {
+            if (!text || text.includes("Your final phrases")) return;
+            
+            window.speechSynthesis.cancel(); // Stop current speech
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            utterance.onstart = () => {
+                document.getElementById('ttsStatus').textContent = "Speaking";
+                document.getElementById('ttsPulse').classList.add('bg-indigo-500', 'pulse');
+                ttsBtn.classList.add('ring-4', 'ring-indigo-500/30');
+            };
+            
+            utterance.onend = () => {
+                document.getElementById('ttsStatus').textContent = "Idle";
+                document.getElementById('ttsPulse').classList.remove('bg-indigo-500', 'pulse');
+                ttsBtn.classList.remove('ring-4', 'ring-indigo-500/30');
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // --- UTILS ---
         function updateStatus(text, classes) {
             statusTag.textContent = text;
-            statusTag.className = `px-3 py-1 rounded-full text-xs font-semibold ${classes}`;
+            statusTag.className = `px-3 py-1 rounded-full text-[10px] font-bold tracking-widest transition-all ${classes}`;
         }
 
         function toggleUI(isStreaming) {
             startBtn.classList.toggle('hidden', isStreaming);
             stopBtn.classList.toggle('hidden', !isStreaming);
-            document.getElementById('recCircle').classList.toggle('pulse', isStreaming);
-            updateStatus(isStreaming ? 'STREAMING' : 'READY', isStreaming ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20');
+            updateStatus(isStreaming ? 'LIVE' : 'READY', isStreaming ? 'text-red-500 border-red-500/20 bg-red-500/10' : 'text-emerald-500 border-emerald-500/20 bg-emerald-500/10');
         }
 
         function scrollToBottom() {
@@ -146,24 +221,28 @@
         }
 
         function updateViz(data) {
-            const step = Math.floor(data.length / 20);
             viz.innerHTML = '';
-            for(let i=0; i<20; i++) {
+            const step = Math.floor(data.length / 32);
+            for(let i=0; i<32; i++) {
                 const bar = document.createElement('div');
-                const val = Math.abs(data[i*step]) * 100;
-                bar.className = 'flex-grow bg-indigo-500/40 rounded-t-sm transition-all duration-75';
-                bar.style.height = `${Math.min(val + 5, 100)}%`;
+                const val = Math.abs(data[i*step]) * 150;
+                bar.className = 'flex-grow bg-cyan-500/40 rounded-t-sm';
+                bar.style.height = `${Math.min(val + 2, 100)}%`;
                 viz.appendChild(bar);
             }
         }
 
+        // --- EVENT LISTENERS ---
         startBtn.onclick = startStreaming;
         stopBtn.onclick = stopStreaming;
+        ttsBtn.onclick = () => speakText(ttsContent.textContent);
+        
         clearBtn.onclick = () => {
             committedSpan.textContent = '';
             interimSpan.textContent = '';
-            document.getElementById('emptyState').classList.remove('hidden');
-            ws.send(JSON.stringify({command: 'reset'}));
+            ttsContent.textContent = 'Your final phrases will appear here...';
+            emptyPrompt.classList.remove('hidden');
+            if(ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({command: 'reset'}));
         };
 
         window.onload = initWS;
