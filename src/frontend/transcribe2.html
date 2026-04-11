@@ -138,6 +138,7 @@
         let audioContext, processor, source;
         let narratorBuffer = "";
         let selectedDomain = "machine_learning";
+        let isRecording = false;  // Flag to ignore transcriptions after stop
 
         // --- NARRATOR SOCKET LOGIC ---
         wsNarrator.onopen = () => {
@@ -198,20 +199,36 @@
         wsTrans.onopen = () => updateStatus('transStatus', 'Speech: Ready', 'text-emerald-400 border-emerald-500/30');
         wsTrans.onmessage = (e) => {
             const data = JSON.parse(e.data);
+            
             if (data.type === 'transcription') {
+                // Ignore transcription messages if not recording
+                if (!isRecording) return;
+                
                 if (data.is_final) {
-                    committedSpan.textContent += " " + interimSpan.textContent;
+                    // Just clear interim on commit, don't show committed text yet
                     interimSpan.textContent = "";
                 } else {
+                    // Show interim text live
                     interimSpan.textContent = data.text;
                 }
                 const area = document.getElementById('scrollArea');
                 area.scrollTop = area.scrollHeight;
             }
+            
+            else if (data.type === 'full_transcript') {
+                // Display the full transcript from backend
+                committedSpan.textContent = data.text;
+                interimSpan.textContent = "";
+            }
         };
 
         // --- AUDIO CAPTURE ---
         async function startMic() {
+            // Clear display for new session
+            committedSpan.textContent = "";
+            interimSpan.textContent = "";
+            isRecording = true;
+            
             audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             source = audioContext.createMediaStreamSource(stream);
@@ -230,12 +247,25 @@
         }
 
         function stopMic() {
+            isRecording = false;  // Stop showing live transcription
+            
             if (processor) {
                 processor.disconnect();
                 source.disconnect();
                 audioContext.close();
             }
+            
             toggleMicUI(false);
+            
+            // Show processing indicator
+            interimSpan.textContent = "Processing...";
+            
+            // Wait for Whisper to finish processing remaining audio
+            setTimeout(() => {
+                if (wsTrans.readyState === WebSocket.OPEN) {
+                    wsTrans.send(JSON.stringify({ command: "get_transcript" }));
+                }
+            }, 1500);
         }
 
         // --- TTS ENGINE ---
