@@ -73,12 +73,20 @@ narrator_ws_handler = NarratorWebSocket(question_provider=question_provider)
 
 
 @app.get("/", response_class=HTMLResponse)
-async def root():
-    """Serve the main page with WebSocket transcription."""
+async def login_page():
+    """Serve the Sign In / Sign Up page."""
+    auth_path = frontend_path / "auth.html"
+    if auth_path.exists():
+        return auth_path.read_text()
+    return "<h1>TechBuddy</h1><p>Auth page not found</p>"
+
+@app.get("/interview", response_class=HTMLResponse)
+async def interview_page():
+    """Serve the main transcription/interview interface."""
     transcribe_path = frontend_path / "transcribe2.html"
     if transcribe_path.exists():
         return transcribe_path.read_text()
-    return "<h1>TechBuddy Server</h1><p>Frontend not found</p>"
+    return "<h1>Error</h1><p>Transcription page not found</p>"
 
 
 @app.get("/health")
