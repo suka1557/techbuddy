@@ -1,3 +1,6 @@
 model:
   model_name: "base.en"
   model_dir: "/home/ar-in-u-301/Documents/codes/techbuddy/src/backend/models"
+
+questions:
+  file_path: "/home/ar-in-u-301/Documents/codes/techbuddy/data/questions/question_bank.json"

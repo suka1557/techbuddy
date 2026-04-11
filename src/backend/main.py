@@ -16,6 +16,7 @@ from utils.download_whisper import download_whisper_model
 from audio.whisper_model import StreamingFasterWhisperTranscriber
 from websocket.candidate_websocket_handler import TranscriptionWebSocket
 from websocket.interviewer_websocket_handler import NarratorWebSocket
+from questions.question_provider import QuestionProvider
 
 # Load configuration
 config = Config.from_yaml(os.path.join(ROOT_PATH, "src", "backend", "configs/dev.yaml"))
@@ -64,8 +65,11 @@ if frontend_path.exists():
 
 # Initialize Transcription WebSocket handler
 ws_handler = TranscriptionWebSocket(whisper_model)
+
+#Initialize Question Provider
+question_provider = QuestionProvider(file_path=config.get("questions", {}).get("file_path"))    
 # Initialize Narrator WebSocket handler
-narrator_ws_handler = NarratorWebSocket()
+narrator_ws_handler = NarratorWebSocket(question_provider=question_provider)
 
 
 @app.get("/", response_class=HTMLResponse)

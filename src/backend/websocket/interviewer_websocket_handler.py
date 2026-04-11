@@ -3,13 +3,16 @@ import json
 from fastapi import WebSocket, WebSocketDisconnect
 from loguru import logger
 
+from questions.question_provider import QuestionProvider
+
 class NarratorWebSocket:
     """
     Handles the Left Side of the UI.
     Requests questions from a DB/API and streams them to the client.
     """
-    def __init__(self):
+    def __init__(self, question_provider: QuestionProvider):
         self.active_connections: list[WebSocket] = []
+        self.question_provider = question_provider
 
     async def handle_narrator(self, websocket: WebSocket):
         await websocket.accept()
@@ -23,8 +26,7 @@ class NarratorWebSocket:
                 message = json.loads(data)
                 
                 if message.get("command") == "get_next_question":
-                    # Placeholder for DB Logic
-                    question = "Explain the difference between a Relational Database and NoSQL."
+                    question = self.question_provider.get_next_from_file()
                     await self.stream_text(websocket, question)
 
         except WebSocketDisconnect:
