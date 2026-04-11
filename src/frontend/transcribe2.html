@@ -16,6 +16,13 @@
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         
         .panel-glow { box-shadow: inset 0 0 50px rgba(0,0,0,0.2); }
+
+        /* Styles the actual dropdown list on some browsers */
+        #domainSelect option {
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 10px;
+        }
     </style>
 </head>
 <body class="flex flex-col h-screen overflow-hidden">
@@ -34,24 +41,33 @@
     <main class="flex flex-1 overflow-hidden">
         
         <section class="w-1/2 flex flex-col bg-slate-950 p-12 panel-glow relative border-r border-slate-800">
-            <div class="mb-10 text-center">
-                <h2 class="text-indigo-400 text-xs font-bold tracking-[0.3em] uppercase mb-4">Interview Assistant</h2>
+            <div class="mb-12">
+                <h2 class="text-indigo-400 text-xs font-bold tracking-[0.3em] uppercase mb-8 text-center">Interview Assistant</h2>
                 
-                <div class="mb-6">
-                    <label for="domainSelect" class="text-slate-400 text-xs font-bold uppercase tracking-widest block mb-2">Select Domain</label>
-                    <select id="domainSelect" class="bg-slate-800 text-slate-200 px-4 py-3 rounded-xl border border-slate-700 focus:border-indigo-500 focus:outline-none font-medium text-sm min-w-[200px] cursor-pointer transition-all hover:bg-slate-700">
-                        <option value="">Loading domains...</option>
-                    </select>
+                <div class="flex items-end justify-center gap-4">
+                    
+                    <div class="flex flex-col">
+                        <label for="domainSelect" class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2 ml-1">Domain</label>
+                        <div class="relative">
+                            <select id="domainSelect" class="appearance-none bg-slate-900 text-slate-200 pl-4 pr-10 py-4 rounded-2xl border border-slate-800 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 focus:outline-none font-semibold text-sm cursor-pointer transition-all hover:bg-slate-800 hover:border-slate-700 w-48">
+                                <option value="">Loading...</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="nextBtn" class="group relative px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold shadow-lg shadow-indigo-900/20 transition-all active:scale-95 overflow-hidden flex items-center gap-2">
+                        <span class="relative z-10 flex items-center gap-2">
+                            ASK NEXT QUESTION 
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                            </svg>
+                        </span>
+                    </button>
+
                 </div>
-                
-                <button id="nextBtn" class="group relative px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold shadow-2xl transition-all active:scale-95 overflow-hidden">
-                    <span class="relative z-10 flex items-center gap-2">
-                        ASK NEXT QUESTION 
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                        </svg>
-                    </span>
-                </button>
             </div>
 
             <div class="flex-grow flex items-center justify-center">
