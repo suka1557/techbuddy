@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: techbuddy_postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    ports:
+      - "${DB_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: 
+      context: .
+      args:
+        - APP_PORT=${APP_PORT}
+    container_name: techbuddy_app
+    ports:
+      - "${APP_PORT}:${APP_PORT}"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=${APP_PORT}
+      - ENVIRONMENT=${ENVIRONMENT}
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_PORT=5432
+    volumes:
+      - ./logs:/var/log/techbuddy
+    depends_on:
+      postgres:
+        condition: service_healthy

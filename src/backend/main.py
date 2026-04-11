@@ -7,24 +7,39 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 import uvicorn
+import psycopg2
+
+
+
+from src.backend.configs.config import Config
+from src.backend.utils.download_whisper import download_whisper_model
+from src.backend.audio.whisper_model import StreamingFasterWhisperTranscriber
+from src.backend.websocket.candidate_websocket_handler import TranscriptionWebSocket
+from src.backend.websocket.interviewer_websocket_handler import NarratorWebSocket
+from src.backend.questions.question_provider import QuestionProvider
+from src.backend.utils.configure_logger import configure_logger
+
 
 ROOT_PATH = Path(__file__).resolve().parents[2]  # .../techbuddy
-logger.info(f"Base path: {ROOT_PATH}")
-
-from configs.config import Config
-from utils.download_whisper import download_whisper_model
-from audio.whisper_model import StreamingFasterWhisperTranscriber
-from websocket.candidate_websocket_handler import TranscriptionWebSocket
-from websocket.interviewer_websocket_handler import NarratorWebSocket
-from questions.question_provider import QuestionProvider
 
 # Load configuration
-config = Config.from_yaml(os.path.join(ROOT_PATH, "src", "backend", "configs/dev.yaml"))
+logger.info(f"ENVIRONMENT variable: {os.getenv('ENVIRONMENT')}")
+config = Config.from_yaml(os.path.join(ROOT_PATH, "src", "backend", "configs", os.getenv("ENVIRONMENT", "dev") + ".yaml"))
+
+# Configure logger
+configure_logger(
+    log_file=os.path.join(ROOT_PATH, config.get("logs", {}).get("log_dir",""), "techbuddy.log"),
+    log_level=config.get("logs", {}).get("log_level", "INFO")
+)
+
+
+logger.info(f"Base path: {ROOT_PATH}")
 
 # Load Model configuration
 model_cfg = config.get("model", {})
 model_name = model_cfg.get("model_name", "base.en")
 model_dir = model_cfg.get("model_dir", os.path.join(ROOT_PATH, "src", "backend", "models"))
+logger.info(f"Model configuration - Name: {model_name}, Directory: {model_dir}")
 
 # Download model if not already present
 model_path = download_whisper_model(model_dir, model_name)
@@ -41,6 +56,41 @@ whisper_model = StreamingFasterWhisperTranscriber(
     min_silence_duration_ms=700
 )
 logger.info("Whisper model initialized")
+
+# Pull values from the environment (injected by Docker Compose)
+DB_CONFIG = {
+    "dbname": os.getenv("DB_NAME", "techbuddy_db"),
+    "user": os.getenv("DB_USER", ""),
+    "password": os.getenv("DB_PASS", ""),
+    "host": os.getenv("DB_HOST", "localhost"),
+    "port": os.getenv("DB_PORT", "5432")
+}
+# Log the database configuration (except password) for debugging
+logger.info(f"Database configuration - Host: {DB_CONFIG['host']}, Port: {DB_CONFIG['port']}, Name: {DB_CONFIG['dbname']}, User: {DB_CONFIG['user']}")
+
+
+def init_db():
+    try:
+        conn = psycopg2.connect(**DB_CONFIG)
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(50) UNIQUE NOT NULL,
+                email VARCHAR(100) UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        conn.commit()
+        cur.close()
+        conn.close()
+        logger.info("Successfully connected to Postgres and verified table.")
+    except Exception as e:
+        logger.error(f"Database error: {e}")
+
+# Initialize the database connection and ensure tables are set up
+init_db()
 
 # Initialize FastAPI app
 app = FastAPI(

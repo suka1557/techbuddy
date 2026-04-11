@@ -4,7 +4,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 from loguru import logger
 
 # Import the new class we created
-from audio.whisper_model import StreamingFasterWhisperTranscriber
+from src.backend.audio.whisper_model import StreamingFasterWhisperTranscriber
 
 class TranscriptionWebSocket:
     """

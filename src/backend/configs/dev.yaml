@@ -4,3 +4,7 @@ model:
 
 questions:
   file_path: "/home/ar-in-u-301/Documents/codes/techbuddy/data/questions/question_bank.json"
+
+logs:
+  log_dir: "/home/ar-in-u-301/Documents/codes/techbuddy/logs"
+  log_level: "INFO"

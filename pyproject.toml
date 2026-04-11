@@ -18,6 +18,8 @@ dependencies = [
     "numpy (>=2.4.4,<3.0.0)",
     "scipy (>=1.17.1,<2.0.0)",
     "faster-whisper (>=1.2.1,<2.0.0)",
+    "gunicorn (>=25.3.0,<26.0.0)",
+    "psycopg2-binary (>=2.9.11,<3.0.0)",
 ]
 
 [project.scripts]

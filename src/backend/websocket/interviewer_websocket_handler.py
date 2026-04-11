@@ -3,7 +3,7 @@ import json
 from fastapi import WebSocket, WebSocketDisconnect
 from loguru import logger
 
-from questions.question_provider import QuestionProvider
+from src.backend.questions.question_provider import QuestionProvider
 
 class NarratorWebSocket:
     """

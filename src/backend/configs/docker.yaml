@@ -1,0 +1,10 @@
+model:
+  model_name: "base.en"
+  model_dir: "/app/src/backend/models"
+
+questions:
+  file_path: "/app/data/questions/question_bank.json"
+
+logs:
+  log_dir: "/var/log/techbuddy"
+  log_level: "INFO"
