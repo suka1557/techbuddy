@@ -25,8 +25,16 @@ class NarratorWebSocket:
                 data = await websocket.receive_text()
                 message = json.loads(data)
                 
-                if message.get("command") == "get_next_question":
-                    question = self.question_provider.get_next_from_file()
+                if message.get("command") == "get_domains":
+                    domains = self.question_provider.get_domains()
+                    await websocket.send_json({
+                        "type": "domains_list",
+                        "domains": domains
+                    })
+                
+                elif message.get("command") == "get_next_question":
+                    domain = message.get("domain", "machine_learning")
+                    question = self.question_provider.get_next_from_file(domain=domain)
                     await self.stream_text(websocket, question)
 
         except WebSocketDisconnect:

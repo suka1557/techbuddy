@@ -36,6 +36,14 @@
         <section class="w-1/2 flex flex-col bg-slate-950 p-12 panel-glow relative border-r border-slate-800">
             <div class="mb-10 text-center">
                 <h2 class="text-indigo-400 text-xs font-bold tracking-[0.3em] uppercase mb-4">Interview Assistant</h2>
+                
+                <div class="mb-6">
+                    <label for="domainSelect" class="text-slate-400 text-xs font-bold uppercase tracking-widest block mb-2">Select Domain</label>
+                    <select id="domainSelect" class="bg-slate-800 text-slate-200 px-4 py-3 rounded-xl border border-slate-700 focus:border-indigo-500 focus:outline-none font-medium text-sm min-w-[200px] cursor-pointer transition-all hover:bg-slate-700">
+                        <option value="">Loading domains...</option>
+                    </select>
+                </div>
+                
                 <button id="nextBtn" class="group relative px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold shadow-2xl transition-all active:scale-95 overflow-hidden">
                     <span class="relative z-10 flex items-center gap-2">
                         ASK NEXT QUESTION 
@@ -108,16 +116,38 @@
         const committedSpan = document.getElementById('committedText');
         const interimSpan = document.getElementById('interimText');
         const viz = document.getElementById('viz');
+        const domainSelect = document.getElementById('domainSelect');
 
         // --- GLOBAL STATE ---
         let audioContext, processor, source;
         let narratorBuffer = "";
+        let selectedDomain = "machine_learning";
 
         // --- NARRATOR SOCKET LOGIC ---
-        wsNarrator.onopen = () => updateStatus('narratorStatus', 'Narrator: Ready', 'text-indigo-400 border-indigo-500/30');
+        wsNarrator.onopen = () => {
+            updateStatus('narratorStatus', 'Narrator: Ready', 'text-indigo-400 border-indigo-500/30');
+            // Request available domains when connected
+            wsNarrator.send(JSON.stringify({ command: "get_domains" }));
+        };
         wsNarrator.onmessage = (e) => {
             const data = JSON.parse(e.data);
-            if (data.type === 'narrator_stream') {
+            
+            if (data.type === 'domains_list') {
+                // Populate dropdown with domains
+                domainSelect.innerHTML = '';
+                data.domains.forEach((domain, index) => {
+                    const option = document.createElement('option');
+                    option.value = domain;
+                    option.textContent = domain.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                    if (index === 0) {
+                        option.selected = true;
+                        selectedDomain = domain;
+                    }
+                    domainSelect.appendChild(option);
+                });
+            }
+            
+            else if (data.type === 'narrator_stream') {
                 const display = document.getElementById('narratorDisplay');
                 
                 // Reset placeholder on first word
@@ -138,10 +168,14 @@
             }
         };
 
+        domainSelect.onchange = (e) => {
+            selectedDomain = e.target.value;
+        };
+
         nextBtn.onclick = () => {
             narratorDisplay.innerText = "...";
             narratorBuffer = "";
-            wsNarrator.send(JSON.stringify({ command: "get_next_question" }));
+            wsNarrator.send(JSON.stringify({ command: "get_next_question", domain: selectedDomain }));
         };
 
         // --- TRANSCRIPTION SOCKET LOGIC ---
