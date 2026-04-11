@@ -13,9 +13,9 @@ logger.info(f"Base path: {ROOT_PATH}")
 
 from configs.config import Config
 from utils.download_whisper import download_whisper_model
-from core.whisper_model3 import StreamingFasterWhisperTranscriber
-from core.websocket_handler2 import TranscriptionWebSocket
-from core.narrator_websocket_handler import NarratorWebSocket
+from backend.audio.whisper_model import StreamingFasterWhisperTranscriber
+from backend.websockets.candidate_websocket_handler import TranscriptionWebSocket
+from backend.websockets.interviewer_websocket_handler import NarratorWebSocket
 
 # Load configuration
 config = Config.from_yaml(os.path.join(ROOT_PATH, "src", "backend", "configs/dev.yaml"))
