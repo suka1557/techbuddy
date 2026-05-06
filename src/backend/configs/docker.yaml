@@ -1,4 +1,4 @@
-model:
+stt_model:
   model_name: "base.en"
   model_dir: "/app/src/backend/models"
 
@@ -8,3 +8,6 @@ questions:
 logs:
   log_dir: "/var/log/techbuddy"
   log_level: "INFO"
+
+openai:
+  stt_cleaner_model: "gpt-4o-mini-2024-07-18"
