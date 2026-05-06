@@ -140,6 +140,16 @@ async def login_page():
         return auth_path.read_text()
     return "<h1>TechBuddy</h1><p>Auth page not found</p>"
 
+
+@app.get("/upload", response_class=HTMLResponse)
+async def upload_page():
+    """Serve the upload page."""
+    upload_path = frontend_path / "upload.html"
+    if upload_path.exists():
+        return upload_path.read_text()
+    return "<h1>TechBuddy</h1><p>Upload page not found</p>"
+
+
 @app.get("/interview", response_class=HTMLResponse)
 async def interview_page():
     """Serve the main transcription/interview interface."""
