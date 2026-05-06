@@ -18,12 +18,12 @@ from src.backend.websocket.candidate_websocket_handler import TranscriptionWebSo
 from src.backend.websocket.interviewer_websocket_handler import NarratorWebSocket
 from src.backend.questions.question_provider import QuestionProvider
 from src.backend.utils.configure_logger import configure_logger
+from src.backend.utils.openai_client import AsyncOpenAIClient
 
 
 ROOT_PATH = Path(__file__).resolve().parents[2]  # .../techbuddy
 
 # Load configuration
-logger.info(f"ENVIRONMENT variable: {os.getenv('ENVIRONMENT')}")
 config = Config.from_yaml(os.path.join(ROOT_PATH, "src", "backend", "configs", os.getenv("ENVIRONMENT", "dev") + ".yaml"))
 
 # Configure logger
@@ -32,11 +32,15 @@ configure_logger(
     log_level=config.get("logs", {}).get("log_level", "INFO")
 )
 
-
+logger.info(f"ENVIRONMENT variable: {os.getenv('ENVIRONMENT')}")
 logger.info(f"Base path: {ROOT_PATH}")
 
-# Load Model configuration
-model_cfg = config.get("model", {})
+if not os.getenv("OPENAI_API_KEY"):
+    logger.error("OPENAI_API_KEY is not set in environment variables. Please set it before running the application.")
+    raise EnvironmentError("OPENAI_API_KEY is required")
+
+# Load Whisper Model configuration
+model_cfg = config.get("stt_model", {})
 model_name = model_cfg.get("model_name", "base.en")
 model_dir = model_cfg.get("model_dir", os.path.join(ROOT_PATH, "src", "backend", "models"))
 logger.info(f"Model configuration - Name: {model_name}, Directory: {model_dir}")
@@ -92,6 +96,12 @@ def init_db():
 # Initialize the database connection and ensure tables are set up
 init_db()
 
+# Initialize OpenAI client
+stt_cleaner_model = config.get("openai", {}).get("stt_cleaner_model", "gpt-4.1")
+logger.info(f"STT Cleanup model: {stt_cleaner_model}")
+openai_client = AsyncOpenAIClient(model=stt_cleaner_model)
+logger.info("OpenAI client initialized")
+
 # Initialize FastAPI app
 app = FastAPI(
     title="TechBuddy - Streaming Speech Transcription",
@@ -114,7 +124,7 @@ if frontend_path.exists():
     app.mount("/static", StaticFiles(directory=str(frontend_path)), name="static")
 
 # Initialize Transcription WebSocket handler
-ws_handler = TranscriptionWebSocket(whisper_model)
+ws_handler = TranscriptionWebSocket(whisper_model, openai_client, stt_cleaner_model)
 
 #Initialize Question Provider
 question_provider = QuestionProvider(file_path=config.get("questions", {}).get("file_path"))    

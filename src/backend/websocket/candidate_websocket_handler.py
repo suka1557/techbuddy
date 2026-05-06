@@ -2,9 +2,11 @@ import asyncio
 import json
 from fastapi import WebSocket, WebSocketDisconnect
 from loguru import logger
+from openai import OpenAI
 
 # Import the new class we created
 from src.backend.audio.whisper_model import StreamingFasterWhisperTranscriber
+from src.backend.utils.openai_client import AsyncOpenAIClient
 
 class TranscriptionWebSocket:
     """
@@ -12,8 +14,10 @@ class TranscriptionWebSocket:
     Uses a concurrent producer/consumer architecture.
     """
     
-    def __init__(self, transcriber: StreamingFasterWhisperTranscriber):
+    def __init__(self, transcriber: StreamingFasterWhisperTranscriber, client: AsyncOpenAIClient, stt_cleaner_model: str):
         self.transcriber = transcriber
+        self.client = client
+        self.stt_cleaner_model = stt_cleaner_model
         self.active_connections: list[WebSocket] = []
         self.full_transcript = ""   # Accumulates committed text
         self.previous_output = ""   # Previous transcription for overlap detection
@@ -132,10 +136,21 @@ class TranscriptionWebSocket:
                     if self.previous_output.strip():
                         final_text += " " + self.previous_output.strip()
                     final_text = final_text.strip()
-                    logger.info(f"Final transcript requested: {final_text}")
+                    
+                    logger.info(f"Final transcript requested (pre-cleanup): {final_text}")
+                    # Clean the final transcript using the LLM before sending
+                    if final_text:
+                        try:
+                            cleaned_text, usage = await self.client.clean_stt_transcript(final_text, event_name="candidate_response_cleanup")
+                        except Exception as e:
+                            logger.error(f"Error during STT cleanup: {e}")
+                            cleaned_text = final_text  # Fallback to raw transcript
+
+
+                    logger.info(f"Final transcript requested (after cleanup): {cleaned_text}")
                     await websocket.send_json({
                         "type": "full_transcript",
-                        "text": final_text
+                        "text": cleaned_text
                     })
 
     async def _send_loop(self, websocket: WebSocket):
