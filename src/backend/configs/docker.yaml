@@ -11,3 +11,9 @@ logs:
 
 openai:
   stt_cleaner_model: "gpt-4o-mini-2024-07-18"
+
+threading:
+  max_workers: 20
+
+minio:
+  bucket_name: "techbuddy"

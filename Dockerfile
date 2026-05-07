@@ -48,6 +48,7 @@ COPY . /app/
 
 #Create Log base folder if it doesn't exist
 RUN mkdir -p /var/log/techbuddy
+RUN mkdir -p /data
 
 # Set environment variables for Poetry and Python
 ENV PYTHONUNBUFFERED=1 \

@@ -122,17 +122,73 @@
 
     <!-- SCRIPT -->
     <script>
-        document.getElementById('proceedBtn').onclick = () => {
-            const resumeText = document.getElementById('resumeText').value;
-            const jdText = document.getElementById('jdText').value;
+        // document.getElementById('proceedBtn').onclick = () => {
+        //     const resumeText = document.getElementById('resumeText').value;
+        //     const jdText = document.getElementById('jdText').value;
 
-            // Optional: store in localStorage (simple approach)
-            localStorage.setItem("resume_text", resumeText);
-            localStorage.setItem("jd_text", jdText);
+        //     // Optional: store in localStorage (simple approach)
+        //     localStorage.setItem("resume_text", resumeText);
+        //     localStorage.setItem("jd_text", jdText);
 
-            // Navigate to interview page
-            window.location.href = "/interview";
-        };
+            async function uploadFile(endpoint, file) {
+
+                const formData = new FormData();
+                formData.append("file", file);
+
+                const response = await fetch(endpoint, {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+
+                return await response.json();
+            }
+
+            document.getElementById('proceedBtn').onclick = async () => {
+
+                try {
+
+                    const resumeFile =
+                        document.getElementById('resumeFile').files[0];
+
+                    const jdFile =
+                        document.getElementById('jdFile').files[0];
+
+                    // Upload resume
+                    if (resumeFile) {
+
+                        await uploadFile(
+                            "/upload/resume",
+                            resumeFile
+                        );
+                    }
+
+                    // Upload JD
+                    if (jdFile) {
+
+                        await uploadFile(
+                            "/upload/jd",
+                            jdFile
+                        );
+                    }
+
+                    // Redirect after upload
+                    window.location.href = "/interview";
+
+                } catch (err) {
+
+                    console.error(err);
+
+                    alert("Upload failed");
+                }
+            };
+
+        //     // Navigate to interview page
+        //     window.location.href = "/interview";
+        // };
     </script>
 
 </body>

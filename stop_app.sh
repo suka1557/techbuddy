@@ -86,3 +86,22 @@ if [ $? -eq 0 ]; then
 else
     echo "[-] Failed to remove the MinIO image. It may have already been removed."
 fi
+
+
+# Clear /data/.minio.sys directory
+echo "[~] Clearing MinIO data directory: /data/.minio.sys"
+rm -rf /data/.minio.sys/*
+if [ $? -eq 0 ]; then
+    echo "[+] Successfully cleared the MinIO data directory."
+else
+    echo "[-] Failed to clear the MinIO data directory. Please check permissions and try again."
+fi
+
+# Clear /data/techbuddy directory
+echo "[~] Clearing MinIO bucket directory: /data/techbuddy"
+rm -rf /data/techbuddy/*
+if [ $? -eq 0 ]; then
+    echo "[+] Successfully cleared the MinIO bucket directory."
+else
+    echo "[-] Failed to clear the MinIO bucket directory. Please check permissions and try again."
+fi
