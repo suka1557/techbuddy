@@ -4,6 +4,7 @@
 export DB_NAME="techbuddy_db"
 export DB_USER="admin"
 export DB_PASS="password123"
+export SCHEMA_NAME="techbuddy"
 export DB_PORT=5300
 export APP_PORT=8000
 export DB_HOST="postgres"  # This should match the service name in docker-compose.yml

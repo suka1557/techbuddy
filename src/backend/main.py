@@ -72,30 +72,6 @@ DB_CONFIG = {
 # Log the database configuration (except password) for debugging
 logger.info(f"Database configuration - Host: {DB_CONFIG['host']}, Port: {DB_CONFIG['port']}, Name: {DB_CONFIG['dbname']}, User: {DB_CONFIG['user']}")
 
-
-def init_db():
-    try:
-        conn = psycopg2.connect(**DB_CONFIG)
-        cur = conn.cursor()
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                username VARCHAR(50) UNIQUE NOT NULL,
-                email VARCHAR(100) UNIQUE NOT NULL,
-                password TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
-        conn.commit()
-        cur.close()
-        conn.close()
-        logger.info("Successfully connected to Postgres and verified table.")
-    except Exception as e:
-        logger.error(f"Database error: {e}")
-
-# Initialize the database connection and ensure tables are set up
-init_db()
-
 # Initialize OpenAI client
 stt_cleaner_model = config.get("openai", {}).get("stt_cleaner_model", "gpt-4.1")
 logger.info(f"STT Cleanup model: {stt_cleaner_model}")
