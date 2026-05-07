@@ -106,7 +106,9 @@ class AsyncOpenAIClient:
             }
 
         except Exception as e:
-            logger.exception(f"Error while generating response for event: {event_name}")
+            logger.exception(
+                f"Error {e} : while generating response for event: {event_name}"
+            )
             raise
 
     async def clean_stt_transcript(self, raw_text: str, event_name: str) -> str:

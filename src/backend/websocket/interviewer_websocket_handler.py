@@ -5,11 +5,13 @@ from loguru import logger
 
 from src.backend.questions.question_provider import QuestionProvider
 
+
 class NarratorWebSocket:
     """
     Handles the Left Side of the UI.
     Requests questions from a DB/API and streams them to the client.
     """
+
     def __init__(self, question_provider: QuestionProvider):
         self.active_connections: list[WebSocket] = []
         self.question_provider = question_provider
@@ -24,14 +26,13 @@ class NarratorWebSocket:
                 # Wait for commands like "get_next_question"
                 data = await websocket.receive_text()
                 message = json.loads(data)
-                
+
                 if message.get("command") == "get_domains":
                     domains = self.question_provider.get_domains()
-                    await websocket.send_json({
-                        "type": "domains_list",
-                        "domains": domains
-                    })
-                
+                    await websocket.send_json(
+                        {"type": "domains_list", "domains": domains}
+                    )
+
                 elif message.get("command") == "get_next_question":
                     domain = message.get("domain", "machine_learning")
                     question = self.question_provider.get_next_from_file(domain=domain)
@@ -47,16 +48,12 @@ class NarratorWebSocket:
         """Drip-feeds text to create a typing effect."""
         words = full_text.split()
         for word in words:
-            await websocket.send_json({
-                "type": "narrator_stream",
-                "text": word + "  ",
-                "is_final": False
-            })
-            await asyncio.sleep(0.06) 
-        
+            await websocket.send_json(
+                {"type": "narrator_stream", "text": word + "  ", "is_final": False}
+            )
+            await asyncio.sleep(0.06)
+
         # Final signal to trigger last TTS chunk
-        await websocket.send_json({
-            "type": "narrator_stream",
-            "text": "",
-            "is_final": True
-        })
+        await websocket.send_json(
+            {"type": "narrator_stream", "text": "", "is_final": True}
+        )

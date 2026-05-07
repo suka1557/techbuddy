@@ -44,9 +44,7 @@ class AsyncMinioClient:
             secure=self.secure,
         )
 
-        logger.info(
-            f"MinIO initialized | endpoint={self.endpoint}"
-        )
+        logger.info(f"MinIO initialized | endpoint={self.endpoint}")
 
     # ==========================================================
     # INTERNAL EXECUTOR WRAPPER
@@ -55,10 +53,7 @@ class AsyncMinioClient:
     async def _run(self, func, *args, **kwargs):
         loop = asyncio.get_running_loop()
 
-        return await loop.run_in_executor(
-            self.executor,
-            lambda: func(*args, **kwargs)
-        )
+        return await loop.run_in_executor(self.executor, lambda: func(*args, **kwargs))
 
     # ==========================================================
     # CREATE BUCKET
@@ -87,9 +82,7 @@ class AsyncMinioClient:
             return True
 
         except Exception:
-            logger.exception(
-                f"Failed creating bucket: {bucket_name}"
-            )
+            logger.exception(f"Failed creating bucket: {bucket_name}")
             raise
 
     # ==========================================================
@@ -112,9 +105,7 @@ class AsyncMinioClient:
             return exists
 
         except Exception:
-            logger.exception(
-                f"Failed checking bucket: {bucket_name}"
-            )
+            logger.exception(f"Failed checking bucket: {bucket_name}")
             raise
 
     # ==========================================================
@@ -144,16 +135,12 @@ class AsyncMinioClient:
                 0,
             )
 
-            logger.info(
-                f"Created path: {bucket_name}/{path}"
-            )
+            logger.info(f"Created path: {bucket_name}/{path}")
 
             return True
 
         except Exception:
-            logger.exception(
-                f"Failed creating path: {bucket_name}/{path}"
-            )
+            logger.exception(f"Failed creating path: {bucket_name}/{path}")
             raise
 
     # ==========================================================
@@ -185,9 +172,7 @@ class AsyncMinioClient:
             return len(objects)
 
         except Exception:
-            logger.exception(
-                f"Failed getting file count"
-            )
+            logger.exception("Failed getting file count")
             raise
 
     # ==========================================================
@@ -216,16 +201,12 @@ class AsyncMinioClient:
                 content_type=content_type,
             )
 
-            logger.info(
-                f"Uploaded file: {object_name}"
-            )
+            logger.info(f"Uploaded file: {object_name}")
 
             return True
 
         except Exception:
-            logger.exception(
-                f"Failed uploading file: {object_name}"
-            )
+            logger.exception(f"Failed uploading file: {object_name}")
             raise
 
     # ==========================================================
@@ -250,14 +231,10 @@ class AsyncMinioClient:
                 object_name,
             )
 
-            logger.info(
-                f"Deleted file: {object_name}"
-            )
+            logger.info(f"Deleted file: {object_name}")
 
             return True
 
         except Exception:
-            logger.exception(
-                f"Failed deleting file: {object_name}"
-            )
+            logger.exception(f"Failed deleting file: {object_name}")
             raise
