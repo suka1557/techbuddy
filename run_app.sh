@@ -1,6 +1,15 @@
 #!/bin/bash
 
 # --- CONFIGURATION (The Source of Truth) ---
+# -------------------------
+# APPLICATION CONFIG
+# -------------------------
+export ENVIRONMENT="docker"  # This will tell our app to load docker.yaml config
+
+
+# -------------------------
+# POSTGRES CONFIG
+# -------------------------
 export DB_NAME="techbuddy_db"
 export DB_USER="admin"
 export DB_PASS="password123"
@@ -8,7 +17,15 @@ export SCHEMA_NAME="techbuddy"
 export DB_PORT=5300
 export APP_PORT=8000
 export DB_HOST="postgres"  # This should match the service name in docker-compose.yml
-export ENVIRONMENT="docker"  # This will tell our app to load docker.yaml config
+
+
+# -------------------------
+# MINIO CONFIG
+# -------------------------
+export MINIO_API_PORT=9000
+export MINIO_CONSOLE_PORT=9001
+export MINIO_ROOT_USER="admin"
+export MINIO_ROOT_PASSWORD="minioadmin123"
 
 # Load secrets from .env file if it exists (optional, for local overrides)
 if [ -f .env ]; then

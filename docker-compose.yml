@@ -17,6 +17,29 @@ services:
       timeout: 5s
       retries: 5
 
+  minio:
+    image: minio/minio:latest
+    container_name: techbuddy_minio
+
+    ports:
+      - "${MINIO_API_PORT}:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
+
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+
+    command: server /data --console-address ":9001"
+
+    volumes:
+      - ./data:/data
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   app:
     build: 
       context: .
@@ -33,10 +56,19 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
-      - DB_PORT=5432
+      - DB_PORT=${DB_PORT}
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_API_PORT=${MINIO_API_PORT}
+      - MINIO_CONSOLE_PORT=${MINIO_CONSOLE_PORT}
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET=techbuddy-documents
+      - MINIO_SECURE=false
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
       - ./logs:/var/log/techbuddy
     depends_on:
       postgres:
+        condition: service_healthy
+      minio:
         condition: service_healthy
