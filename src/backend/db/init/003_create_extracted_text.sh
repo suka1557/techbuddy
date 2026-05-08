@@ -15,13 +15,18 @@ CREATE SCHEMA IF NOT EXISTS ${SCHEMA_NAME};
 SET search_path TO ${SCHEMA_NAME};
 
 -- Create table
-CREATE TABLE IF NOT EXISTS ${SCHEMA_NAME}.users (
+CREATE TABLE IF NOT EXISTS ${SCHEMA_NAME}.extracted_text (
     id SERIAL PRIMARY KEY,
-    user_id VARCHAR(200) UNIQUE NOT NULL,
-    user_name VARCHAR(200) UNIQUE NOT NULL,
-    user_email VARCHAR(200) UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    file_prefix VARCHAR,
+    file_name VARCHAR,
+    file_extension VARCHAR,
+    page_number INTEGER,
+    text_content TEXT,
+    user_id VARCHAR,
+    user_name VARCHAR,
+    user_email VARCHAR,
+    modified_by VARCHAR(100) DEFAULT 'Automated',
+    modified_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 EOSQL
