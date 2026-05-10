@@ -6,6 +6,8 @@ postgres_container_name="techbuddy_postgres"  # This should match the container 
 postgres_image_name="postgres:latest"  # This should match the image name in docker-compose.yml
 minio_container_name="techbuddy_minio"  # This should match the container name in docker-compose.yml
 minio_image_name="minio/minio:latest"  # This should match the image name in docker-compose.yml
+rabbitmq_container_name="techbuddy_rabbitmq"  # This should match the container name in docker-compose.yml
+rabbitmq_image_name="rabbitmq:3-management"  # This should match the image name in docker-compose.yml
 
 echo "[~] Stopping TechBuddy application container: $application_container_name"
 # Stop the application container
@@ -104,4 +106,30 @@ if [ $? -eq 0 ]; then
     echo "[+] Successfully cleared the MinIO bucket directory."
 else
     echo "[-] Failed to clear the MinIO bucket directory. Please check permissions and try again."
+fi
+
+
+# Add commands to stop and remove RabbitMQ container and image
+echo "[~] Stopping RabbitMQ container: $rabbitmq_container_name"
+docker stop $rabbitmq_container_name
+if [ $? -eq 0 ]; then
+    echo "[+] Successfully stopped the RabbitMQ container."
+else
+    echo "[-] Failed to stop the RabbitMQ container. It may not be running."
+fi
+
+echo "[~] Removing TechBuddy RabbitMQ container: $rabbitmq_container_name"
+docker rm $rabbitmq_container_name
+if [ $? -eq 0 ]; then
+    echo "[+] Successfully removed the RabbitMQ container."
+else
+    echo "[-] Failed to remove the RabbitMQ container. It may have already been removed."
+fi
+
+echo "[~] Removing TechBuddy RabbitMQ image: $rabbitmq_image_name"
+docker rmi $rabbitmq_image_name
+if [ $? -eq 0 ]; then
+    echo "[+] Successfully removed the RabbitMQ image."
+else
+    echo "[-] Failed to remove the RabbitMQ image. It may have already been removed."
 fi

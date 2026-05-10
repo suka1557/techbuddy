@@ -36,6 +36,18 @@ export MINIO_CONSOLE_PORT=9001
 export MINIO_ROOT_USER="admin"
 export MINIO_ROOT_PASSWORD="minioadmin123"
 
+
+
+# -------------------------
+# RABBITMQ CONFIG
+# -------------------------
+export RABBITMQ_PORT=5500
+export RABBITMQ_UI_PORT=15000
+export RABBITMQ_USER="admin"
+export RABBITMQ_PASSWORD="rabbitmqadmin123"
+export RABBITMQ_HOST="rabbitmq"  # This should match the service name in docker-compose.yml
+
+
 # Load secrets from .env file if it exists (optional, for local overrides)
 if [ -f .env ]; then
     echo "[*] Loading environment variables from .env file..."

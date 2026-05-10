@@ -39,6 +39,25 @@ services:
     networks:
       - shared_network
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: techbuddy_rabbitmq
+    ports:
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_UI_PORT}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - shared_network
+
   app:
     build: 
       context: .
@@ -64,6 +83,11 @@ services:
       - MINIO_BUCKET=techbuddy-documents
       - MINIO_SECURE=false
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_UI_PORT=${RABBITMQ_UI_PORT}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     volumes:
       - ./logs:/var/log/techbuddy
       - ./data:/data
@@ -78,3 +102,6 @@ services:
 networks:
   shared_network:
     external: true
+
+volumes:
+  rabbitmq_data: {}
