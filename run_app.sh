@@ -5,7 +5,16 @@
 # APPLICATION CONFIG
 # -------------------------
 export ENVIRONMENT="docker"  # This will tell our app to load docker.yaml config
-
+if [ "$ENVIRONMENT" = "docker" ]; then
+    echo "[*] Running in Docker environment. Loading docker.yaml configuration."
+    # Create shared network if it doesn't exist
+    if ! docker network ls | grep -q "shared_network"; then
+        echo "[*] Creating Docker network: shared_network"
+        docker network create shared_network
+    fi
+else
+    echo "[*] Running in non-Docker environment. Please set ENVIRONMENT=docker to load docker.yaml configuration."
+fi
 
 # -------------------------
 # POSTGRES CONFIG

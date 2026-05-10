@@ -16,29 +16,28 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - shared_network
 
   minio:
     image: minio/minio:latest
     container_name: techbuddy_minio
-
     ports:
       - "${MINIO_API_PORT}:9000"
       - "${MINIO_CONSOLE_PORT}:9001"
-
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-
     command: server /data --console-address ":9001"
-
     volumes:
       - ./data:/data
-
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - shared_network
 
   app:
     build: 
@@ -73,3 +72,9 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+    networks:
+      - shared_network
+
+networks:
+  shared_network:
+    external: true
