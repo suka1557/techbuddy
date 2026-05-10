@@ -41,11 +41,18 @@ export MINIO_ROOT_PASSWORD="minioadmin123"
 # -------------------------
 # RABBITMQ CONFIG
 # -------------------------
-export RABBITMQ_PORT=5500
+export RABBITMQ_HOST_PORT=5500
 export RABBITMQ_UI_PORT=15000
+# Internal container ports (what services listen on inside the docker network)
+export RABBITMQ_PORT=5672
 export RABBITMQ_USER="admin"
 export RABBITMQ_PASSWORD="rabbitmqadmin123"
 export RABBITMQ_HOST="rabbitmq"  # This should match the service name in docker-compose.yml
+export DOCUMENTS_EXCHANGE="documents_exchange"
+export RESUME_QUEUE="resume_queue"
+export JD_QUEUE="job_description_queue"
+export RESUME_ROUTING_KEY="resume"
+export JD_ROUTING_KEY="job_description"
 
 
 # Load secrets from .env file if it exists (optional, for local overrides)

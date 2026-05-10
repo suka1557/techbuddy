@@ -2,7 +2,7 @@ import os
 from loguru import logger
 from pathlib import Path
 
-from fastapi import FastAPI, WebSocket, UploadFile, File, HTTPException
+from fastapi import FastAPI, WebSocket, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
@@ -20,6 +20,8 @@ from src.backend.questions.question_provider import QuestionProvider
 from src.backend.utils.configure_logger import configure_logger
 from src.backend.utils.openai_client import AsyncOpenAIClient
 from src.backend.utils.minio_client import AsyncMinioClient
+from src.backend.utils.rabbitmq_producer import AsyncRabbitMQProducer
+from src.backend.utils.push_msg_to_queue import push_notification_to_queue
 
 
 ROOT_PATH = Path(__file__).resolve().parents[2]  # .../techbuddy
@@ -78,6 +80,22 @@ minio_client = AsyncMinioClient(
     secret_key=MINIO_SECRET_KEY,
     secure=MINIO_SECURE,
 )
+
+
+# ==========================================================
+# RABBITMQ CONFIG
+# ==========================================================
+
+RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "rabbitmq")
+RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", "5672"))
+RABBITMQ_USER = os.getenv("RABBITMQ_USER", "admin")
+RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD", "rabbitmqadmin123")
+DOCUMENTS_EXCHANGE = os.getenv("DOCUMENTS_EXCHANGE", "documents_exchange")
+RESUME_QUEUE = os.getenv("RESUME_QUEUE", "resume_queue")
+JD_QUEUE = os.getenv("JD_QUEUE", "job_description_queue")
+RESUME_ROUTING_KEY = os.getenv("RESUME_ROUTING_KEY", "resume")
+JD_ROUTING_KEY = os.getenv("JD_ROUTING_KEY", "job_description")
+
 
 # Load Whisper Model configuration
 model_cfg = config.get("stt_model", {})
@@ -157,6 +175,8 @@ narrator_ws_handler = NarratorWebSocket(question_provider=question_provider)
 @app.on_event("startup")
 async def startup_event():
 
+    global minio_client, rabbit_mq_producer
+
     # Create bucket if missing
     await minio_client.create_bucket(BUCKET_NAME)
 
@@ -165,6 +185,21 @@ async def startup_event():
 
     await minio_client.create_path(BUCKET_NAME, "job_descriptions/")
 
+    # Intialize RabbitMQ producer
+    rabbit_mq_producer = AsyncRabbitMQProducer(
+        host=RABBITMQ_HOST,
+        port=RABBITMQ_PORT,
+        username=RABBITMQ_USER,
+        password=RABBITMQ_PASSWORD,
+        exchange_name=DOCUMENTS_EXCHANGE,
+        resume_queue=RESUME_QUEUE,
+        resume_routing_key=RESUME_ROUTING_KEY,
+        jd_queue=JD_QUEUE,
+        jd_routing_key=JD_ROUTING_KEY,
+    )
+
+    await rabbit_mq_producer.connect()
+
 
 # ==========================================================
 # RESUME UPLOAD
@@ -172,24 +207,36 @@ async def startup_event():
 
 
 @app.post("/upload/resume")
-async def upload_resume(file: UploadFile = File(...)):
+async def upload_resume(
+    file: UploadFile = File(...), background_tasks: BackgroundTasks = None
+):
     try:
         # Save temporarily
         suffix = Path(file.filename).suffix
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
             content = await file.read()
-
             temp_file.write(content)
-
             temp_path = temp_file.name
 
         # Upload to MinIO
-        await minio_client.upload_file(
+        minio_file_path = await minio_client.upload_file(
             bucket_name=BUCKET_NAME,
             object_name=f"resumes/{file.filename}",
             file_path=temp_path,
             content_type=file.content_type,
+        )
+
+        # Create Payload for RabbitMQ
+        payload = {
+            "document_type": "resume",
+            "minio_path": minio_file_path,
+            "user_id": 1,
+        }
+
+        # Add background job for pushing notification
+        background_tasks.add_task(
+            push_notification_to_queue, rabbit_mq_producer, "resume", payload
         )
 
         # Cleanup temp file
@@ -212,7 +259,9 @@ async def upload_resume(file: UploadFile = File(...)):
 
 
 @app.post("/upload/jd")
-async def upload_jd(file: UploadFile = File(...)):
+async def upload_jd(
+    file: UploadFile = File(...), background_tasks: BackgroundTasks = None
+):
     try:
         suffix = Path(file.filename).suffix
 
@@ -224,11 +273,21 @@ async def upload_jd(file: UploadFile = File(...)):
             temp_path = temp_file.name
 
         # Upload to MinIO
-        await minio_client.upload_file(
+        minio_file_path = await minio_client.upload_file(
             bucket_name=BUCKET_NAME,
             object_name=f"job_descriptions/{file.filename}",
             file_path=temp_path,
             content_type=file.content_type,
+        )
+
+        # Add background job for pushing notification
+        payload = {
+            "document_type": "job_description",
+            "minio_path": minio_file_path,
+            "user_id": 1,
+        }
+        background_tasks.add_task(
+            push_notification_to_queue, rabbit_mq_producer, "job_description", payload
         )
 
         # Cleanup temp file

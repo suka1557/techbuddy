@@ -191,7 +191,7 @@ class AsyncMinioClient:
         object_name: str,
         file_path: str,
         content_type: str = "application/octet-stream",
-    ) -> bool:
+    ) -> str:
         try:
             await self._run(
                 self.client.fput_object,
@@ -203,7 +203,7 @@ class AsyncMinioClient:
 
             logger.info(f"Uploaded file: {object_name}")
 
-            return True
+            return f"{bucket_name}/{object_name}"
 
         except Exception:
             logger.exception(f"Failed uploading file: {object_name}")

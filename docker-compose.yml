@@ -43,7 +43,7 @@ services:
     image: rabbitmq:3-management
     container_name: techbuddy_rabbitmq
     ports:
-      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_HOST_PORT}:5672"
       - "${RABBITMQ_UI_PORT}:15672"
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
@@ -88,6 +88,11 @@ services:
       - RABBITMQ_UI_PORT=${RABBITMQ_UI_PORT}
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - DOCUMENTS_EXCHANGE=${DOCUMENTS_EXCHANGE}
+      - RESUME_QUEUE=${RESUME_QUEUE}
+      - JD_QUEUE=${JD_QUEUE}
+      - RESUME_ROUTING_KEY=${RESUME_ROUTING_KEY}
+      - JD_ROUTING_KEY=${JD_ROUTING_KEY}
     volumes:
       - ./logs:/var/log/techbuddy
       - ./data:/data
